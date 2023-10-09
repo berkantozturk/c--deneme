@@ -1,0 +1,299 @@
+using Microsoft.VisualBasic;
+using Oracle.ManagedDataAccess.Client;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+
+namespace denemeler
+{
+    public partial class Form1 : Form
+
+    {
+        private object textBoxVeri;
+
+        public Form1()
+        {
+            InitializeComponent();
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            string file = @"C:\Users\berka\OneDrive\Masaüstü\datas\data.txt";
+
+
+            {
+                if (File.Exists(file))
+                {
+                    using (StreamReader a = new StreamReader(file))
+                    {
+                        string column;
+                        while ((column = a.ReadLine()) != null)
+                        {
+                            comboBox1.Items.Add(column);
+                        }
+                    }
+                }
+            }
+        }
+                    
+
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            {
+                string oradb = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=149.102.138.15)(PORT=1611))(CONNECT_DATA=(SERVICE_NAME=datateamdb)));User ID=GRAPH;Password=GRAPH";
+                OracleConnection conn = new OracleConnection(oradb);
+
+                try
+                {
+                    conn.Open();
+                    OracleCommand cmd = new OracleCommand();
+                    cmd.Connection = conn; 
+                    string selectedSchema = dataGridView1.Rows[e.RowIndex].Cells[0].Value.ToString();
+                    cmd.CommandText = $"SELECT name FROM {selectedSchema}.TNRK_MIGRATIONS";
+                    cmd.CommandType = CommandType.Text;
+
+                    OracleDataAdapter adapter = new OracleDataAdapter(cmd); 
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt); 
+
+                    if (dt.Rows.Count > 0)
+                    {
+                        dataGridView3.DataSource = dt;
+
+                    }
+                    else
+                    {
+                        MessageBox.Show("Kayıt bulunamadı");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Hata: " + ex.Message);
+                }
+                finally
+                {
+                    conn.Close();
+                }
+
+            }
+        }
+
+        private void addFolderButton(object sender, EventArgs e)
+        {
+            folderBrowserDialog1.ShowDialog();
+            string folderPath = folderBrowserDialog1.SelectedPath;
+            DirectoryInfo foldersinfo = new DirectoryInfo(folderPath);
+            FileInfo[] folders = foldersinfo.GetFiles();
+
+            List<MigFile> fileNames = new List<MigFile>();
+
+            foreach (FileInfo file in folders)
+            {
+                MigFile migFile = new MigFile();
+                migFile.Name = file.Name;
+                fileNames.Add(migFile);
+            }
+
+            dataGridView2.DataSource = fileNames;
+        }
+
+
+        private class MigFile //listede rakam olarak gözükmesi için class ekledik
+        {
+            public string Name { get; set; }
+        }
+
+        private void CompareAndPopulateGrid4()
+        {
+            // dataGridView2'den verileri al
+            List<MigFile> grid2Data = (List<MigFile>)dataGridView2.DataSource;
+
+            // dataGridView3'den verileri al
+            DataTable grid3Data = (DataTable)dataGridView3.DataSource;
+
+            // Farklı verileri saklamak için bir liste oluştur
+            List<MigFile> differentFiles = new List<MigFile>();
+
+            // dataGridView2'deki her dosyayı kontrol et
+            foreach (MigFile file in grid2Data)
+            {
+                // Dosyanın adını dataGridView3'teki verilerle karşılaştır
+                bool found = false;
+                foreach (DataRow row in grid3Data.Rows)
+                {
+                    string fileName = row["name"].ToString();
+                    if (file.Name.Equals(fileName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                // Dosya dataGridView3'te bulunmadıysa, farklı dosyalara ekle
+                if (!found)
+                {
+                    differentFiles.Add(file);
+                }
+            }
+
+            // Farklı dosyaları dataGridView4'e ata
+            dataGridView4.DataSource = differentFiles;
+        }
+
+
+
+        private void dataGridView4_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            OpenFileDialog openFileDialog1 = new OpenFileDialog();
+
+
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    string fileway = openFileDialog1.FileName;
+                    string file = File.ReadAllText(fileway);
+
+                    richTextBox1.Text = file;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Hata: " + ex.Message);
+                }
+            }
+
+        }
+
+        private void ConnectButton (object sender, EventArgs e)
+        {
+            try
+            {
+                OracleConnection conn = new OracleConnection(comboBox1.Text);
+
+                conn.Open();
+                OracleCommand cmd = new OracleCommand();
+                cmd.Connection = conn;
+                cmd.CommandText = "SELECT username SCHEMAS FROM all_users WHERE (username LIKE 'DT%' OR username LIKE 'MIG%') AND username <> 'DTGRAPH' ORDER BY username";
+                cmd.CommandType = CommandType.Text;
+
+                OracleDataAdapter adapter = new OracleDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                adapter.Fill(dt);
+
+                if (dt.Rows.Count > 0)
+                {
+                    dataGridView1.DataSource = dt;
+
+                }
+                else
+                {
+                    MessageBox.Show("Kayıt bulunamadı");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Hata: " + ex.Message);
+            }
+            finally
+            {
+            }
+
+        }
+
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+
+        }
+
+
+
+        private void addButton(object sender, EventArgs e)
+        {
+            {
+                string newString = Interaction.InputBox("Connection String", "Add your Connection String!");
+
+                if (!string.IsNullOrWhiteSpace(newString))
+                {
+                    try
+                    {
+                        if (!comboBox1.Items.Contains(newString))
+                        {
+                            string fileName = @"C:\Users\berka\OneDrive\Masaüstü\datas\data.txt";
+                            File.AppendAllText(fileName, newString + Environment.NewLine);
+
+                            comboBox1.Items.Add(newString);
+                            comboBox1.SelectedItem = newString;
+
+                            MessageBox.Show("Successful!");
+                        }
+                        else
+                        {
+                            MessageBox.Show("The item already exists in the ComboBox.");
+                        }
+
+                        MessageBox.Show("Successful!");
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error " + ex.Message);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Please write string!");
+                }
+
+            }
+        }
+
+        private void folderBrowserDialog1_HelpRequest(object sender, EventArgs e)
+        {
+
+        }
+
+        private void dataGridView2_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+        private void dataGridView3_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+
+
+        private void compareButton(object sender, EventArgs e)
+        {
+            CompareAndPopulateGrid4();
+
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void richTextBox1_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void richTextBox2_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+    }
+}
+    
+

@@ -1,0 +1,2 @@
+Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=149.102.138.15)(PORT=1611))(CONNECT_DATA=(SERVICE_NAME=datateamdb)));User ID=GRAPH;Password=GRAPH
+C:\Users\berka\OneDrive\Masaüstü\C#\deneme\denemeler\bin\Debug\datafolder.txt
